@@ -33,7 +33,7 @@ export const MODELS: Map<keyof typeof MODELS_TO_LOAD, THREE.Group> = new Map()
 
 const audioLoader = new THREE.AudioLoader(loadingManager)
 
-const SOUNDS_TO_LOAD = {
+export const SOUNDS_TO_LOAD = {
     shoot: 'assets/sounds/shoot.wav',
     hit: 'assets/sounds/hit.wav',
     explosion: 'assets/sounds/explosion.wav',
