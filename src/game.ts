@@ -4,6 +4,7 @@ import { checkCollisions } from "./collisions";
 import { handleCursor, initCursor } from "./cursor";
 import { spawnEnemy, updateEnemies } from "./enemies";
 import { gameState, type GameState } from "./gamestate";
+import { SOUNDS } from "./loader";
 import { updateParticles } from "./particles";
 import { Player } from "./player";
 import { initPostprocessing, renderWithPostProcessing } from "./postprocessing";
@@ -45,6 +46,11 @@ export class Game {
         initCursor();
 
         moveCameraTo(this.player.object!, 2500).then(() => lockCamera())
+
+        const music = SOUNDS.get("music")!
+        music.setLoop(true)
+        music.setVolume(0.5)
+        music.play()
 
         //Main Loop
         let t = performance.now();

@@ -15,7 +15,7 @@ loadingManager.onStart = function ( url, itemsLoaded, itemsTotal ) {
 
 loadingManager.onProgress = function ( url, itemsLoaded, itemsTotal ) {
     loadingPercentage.value = Math.round(100*itemsLoaded/itemsTotal)
-	console.log( 'Loaded ' + itemsLoaded + ' of ' + itemsTotal + ' files.' );
+	console.log(`Loaded ${itemsLoaded} of ${itemsTotal} files: ${url.substring(0, 50)}.`);
 };
 
 loadingManager.onError = function ( url ) {
@@ -31,20 +31,37 @@ const MODELS_TO_LOAD = {
 
 export const MODELS: Map<keyof typeof MODELS_TO_LOAD, THREE.Group> = new Map()
 
+const audioLoader = new THREE.AudioLoader(loadingManager)
+
+const SOUNDS_TO_LOAD = {
+    shoot: 'assets/sounds/shoot.wav',
+    hit: 'assets/sounds/hit.wav',
+    explosion: 'assets/sounds/explosion.wav',
+    music: 'assets/sounds/music.mp3'
+}
+export const SOUNDS: Map<keyof typeof SOUNDS_TO_LOAD, THREE.Audio> = new Map()
+export const audioListener = new THREE.AudioListener();
+
 export function loadAssets(): Promise<void> {
     return new Promise((resolve) => {
         loadingManager.onLoad = function ( ) {
             isLoading.value = false
             console.log( 'Loading complete!');
-            resolve()
+            setTimeout(() => resolve(), 500)
         };
         
         Object.entries(MODELS_TO_LOAD).forEach(([name, path]) => {
             gltfLoader.load(path, (gltf: GLTF) => { 
-                console.log({gltf})
                 MODELS.set(name as keyof typeof MODELS_TO_LOAD, gltf.scene)
-            })
+            }, undefined, error => { console.error(error) })
+        })
+
+        Object.entries(SOUNDS_TO_LOAD).forEach(([name, path]) => {
+            audioLoader.load(path, (audioBuffer) => {
+                const sound = new THREE.Audio( audioListener );
+                sound.setBuffer(audioBuffer)
+                SOUNDS.set(name as keyof typeof SOUNDS_TO_LOAD, sound)
+            }, undefined, error => { console.error(error) })
         })
     })
-
 }

@@ -3,7 +3,7 @@ import type { Ref } from 'vue';
 import { getDirectionVector, hasArrowKeyPressed, initControls, watchKey } from "./controls";
 import { spawnExplosion } from './explosion';
 import { getGame } from './game';
-import { MODELS } from './loader';
+import { MODELS, SOUNDS } from './loader';
 import { ParticlesEmitter } from './particles';
 import { spawnProjectile } from './projectiles';
 import { range } from './utils/array';
@@ -50,6 +50,7 @@ export class Player {
     }
 
     fireProjectile(scene: THREE.Scene){
+        SOUNDS.get("shoot")!.play();
         spawnProjectile({
             position: this.object!.position.clone().add(new THREE.Vector3(0,-2,40)),
             velocity: new THREE.Vector3(0,0, 500),
@@ -82,6 +83,7 @@ export class Player {
     onHit(){
         console.log("player hit !")
         const { scene, camera } = getGame()
+        SOUNDS.get("hit")!.play();
         spawnExplosion(this.object!.position, 40, scene, camera);
     }
 

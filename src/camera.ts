@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { ref, shallowRef, type Ref, type ShallowRef } from "vue";
+import { audioListener } from "./loader";
 
 let camera: THREE.PerspectiveCamera;
 let cameraLight: THREE.PointLight;
@@ -19,6 +20,7 @@ export function createCamera(renderer: THREE.Renderer): THREE.PerspectiveCamera 
 
     cameraLight = new THREE.PointLight(0xffffff, 0.5, 0, 0)
     camera.add(cameraLight)
+    camera.add(audioListener)
           
     controls = new OrbitControls(camera, renderer.domElement);
     controls.minDistance = 1
