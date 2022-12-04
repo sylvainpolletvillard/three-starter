@@ -1,13 +1,16 @@
 import * as THREE from "three"
 import { randomVariation } from "./utils/random"
 
+const particlesEmitters: Set<ParticlesEmitter> = new Set();
 export interface ParticlesEmitterParams {
     position: THREE.Vector3
     velocity: THREE.Vector3
     spread: number
     nbParticles: number
+    nbParticlesPerFrame: number
     lifeTime: number
     particleSize: number
+    particleLifeTime: number
     texturePath: string
 }
 
@@ -16,8 +19,10 @@ const DEFAULT_PARAMS: ParticlesEmitterParams = {
     velocity: new THREE.Vector3(0,0,-1),
     spread: 1,
     nbParticles: 10,
-    lifeTime: 1000,
+    nbParticlesPerFrame: 1,
+    lifeTime: Infinity,
     particleSize: 1,
+    particleLifeTime: 1000,
     texturePath: "./assets/textures/fire.png"
 }
 
@@ -62,12 +67,16 @@ export class ParticlesEmitter {
     material: THREE.ShaderMaterial
     particles: Particle[]
     geometry: THREE.BufferGeometry
+    parent: THREE.Object3D | THREE.Group
     points: THREE.Points
     position: THREE.Vector3
     velocity: THREE.Vector3
     spread: number
     nbParticles: number
+    nbParticlesPerFrame: number
+    life: number
     lifeTime: number
+    particleLifeTime: number
     particleSize: number
 
     constructor({ camera, parent, params: paramsPassed }: { 
@@ -96,12 +105,16 @@ export class ParticlesEmitter {
             vertexColors: true
         })
 
+        this.parent = parent;
         this.camera = camera
         this.position = params.position
         this.velocity = params.velocity
         this.spread = params.spread
         this.nbParticles = params.nbParticles
+        this.nbParticlesPerFrame = params.nbParticlesPerFrame
         this.lifeTime = params.lifeTime
+        this.life = params.lifeTime
+        this.particleLifeTime = params.particleLifeTime
         this.particleSize = params.particleSize
         this.particles = [];
 
@@ -113,29 +126,33 @@ export class ParticlesEmitter {
 
         this.addParticles();
         this.updateGeometry();
+        particlesEmitters.add(this)
     }
     
-    destroy(){
+    destroy(){        
+        this.parent.remove(this.points)
         this.geometry.dispose()
-        this.points.remove()        
+        particlesEmitters.delete(this) 
     }
 
     addParticles(){
-        const lifetime = randomVariation(this.lifeTime, .25)
-        const spreadVector = new THREE.Vector3(
-            (Math.random() * 2 - 1),
-            (Math.random() * 2 - 1),
-            (Math.random() * 2 - 1)
-        ).setLength(this.spread)
-        this.particles.push({
-            position: spreadVector.clone().add(this.position),
-            size: randomVariation(this.particleSize, .25),
-            lifetime,
-            life: lifetime,
-            velocity: spreadVector.clone().add(this.velocity),
-            color: new THREE.Color(0xffffff),
-            alpha: 1.0
-        })
+        for(let i=0; i<this.nbParticlesPerFrame; i++){
+            const lifetime = randomVariation(this.particleLifeTime, .25)
+            const spreadVector = new THREE.Vector3(
+                (Math.random() * 2 - 1),
+                (Math.random() * 2 - 1),
+                (Math.random() * 2 - 1)
+            ).setLength(this.spread)
+            this.particles.push({
+                position: spreadVector.clone().add(this.position),
+                size: randomVariation(this.particleSize, .25),
+                lifetime,
+                life: lifetime,
+                velocity: spreadVector.clone().add(this.velocity),
+                color: new THREE.Color(0xffffff),
+                alpha: 1.0
+            })
+        }
     }
 
     updateGeometry(){
@@ -169,5 +186,11 @@ export class ParticlesEmitter {
         if(this.particles.length < this.nbParticles) this.addParticles()
         this.updateParticles(timeElapsed)
         this.updateGeometry()
+        this.life -= timeElapsed
+        if(this.life <= 0) this.destroy()
     }
+}
+
+export function updateParticles(timeElapsed: number){
+    particlesEmitters.forEach(emitter => emitter.update(timeElapsed))
 }

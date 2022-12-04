@@ -1,5 +1,3 @@
-export function one<T>(el: T | T[]): T { return Array.isArray(el) ? el[0] : el }
-
 export function sum(...array: number[]){
     return array.reduce((a,b)=> a+b, 0)
 }
@@ -59,8 +57,4 @@ export function ponderatedRandomIn<T>(array: Array<T>, ponderator: (elem: T) => 
         if(rand < w) return array[i]
     }
     return array[array.length - 1]
-}
-
-export function randomInt(start: number, end: number){
-    return Math.floor(Math.random()*(end-start+1) + start)
 }

@@ -1,13 +1,18 @@
 import * as THREE from 'three';
-import { GLTFLoader, type GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { Ref } from 'vue';
-import { moveCameraTo } from './camera';
 import { getDirectionVector, hasArrowKeyPressed, initControls, watchKey } from "./controls";
+import { spawnExplosion } from './explosion';
+import { getGame } from './game';
+import { MODELS } from './loader';
 import { ParticlesEmitter } from './particles';
 import { spawnProjectile } from './projectiles';
 import { range } from './utils/array';
 import { throttle } from './utils/functions';
 import { clamp } from './utils/number';
+
+const MAX_VELOCITY = 2
+const ACCELERATION = 4
+const MAX_X = 250
 
 export class Player {
     object: THREE.Group| null
@@ -16,21 +21,17 @@ export class Player {
     fire: Ref<boolean>;
 
     constructor(scene: THREE.Scene, camera: THREE.Camera){
-        this.object = null;
+        this.object = MODELS.get("Spitfire")!;
+        this.object.scale.set(10,10,10)
+
         this.particlesEmitters = []
         this.velocity = new THREE.Vector3()
         this.fire = watchKey("Space");
-        this.fireProjectile = throttle(this.fireProjectile.bind(this), 500)
-
-        const gltfLoader = new GLTFLoader()
-        gltfLoader.load('assets/models/Spitfire/glTF/Spitfire.gltf', (gltf: GLTF) => {
-            this.object = gltf.scene
-            this.object.scale.set(10,10,10)
-            scene.add(this.object)
-            this.addReactors(camera)
-            moveCameraTo(this.object, 2500)
-            initControls()
-        })
+        this.fireProjectile = throttle(this.fireProjectile.bind(this), 250)
+        
+        scene.add(this.object)
+        this.addReactors(camera)
+        initControls()
     }
 
     addReactors(camera: THREE.Camera){
@@ -42,7 +43,7 @@ export class Player {
                 velocity: new THREE.Vector3(0,0,-5),
                 spread: 0.3,
                 nbParticles: 50,
-                lifeTime: 250,
+                particleLifeTime: 250,
                 particleSize: 25
             }
         }))
@@ -61,17 +62,27 @@ export class Player {
     update(timeElapsed: number, scene: THREE.Scene){
         if(!this.object) return;
         const [ax, ay] = getDirectionVector()
-        this.velocity.x = clamp(this.velocity.x + ax * -2 * timeElapsed/1000, -1, +1)  
-        this.velocity.y = clamp(this.velocity.y + ay * timeElapsed/1000, -1, +1)
+        this.velocity.x = clamp(this.velocity.x + ax * -1 * ACCELERATION * timeElapsed/1000, -MAX_VELOCITY, +MAX_VELOCITY)
         if(!hasArrowKeyPressed()){
             this.velocity.lerp(new THREE.Vector3(0,0,0), 0.05)
         }
         
-        this.object.rotation.set(this.velocity.y * (-Math.PI/32), 0, this.velocity.x * (-Math.PI/4))
+        this.object.rotation.set(0, 0, this.velocity.x * (-Math.PI/4) / MAX_VELOCITY)
         this.object.position.add(this.velocity)
-        this.particlesEmitters.forEach(emitter => emitter.update(timeElapsed))
+        this.object.position.x = clamp(this.object.position.x, -MAX_X, +MAX_X)
 
         if(this.fire.value === true) this.fireProjectile(scene)
+    }
+
+    get hitbox(){
+        this.object?.updateMatrixWorld(true)
+        return new THREE.Box3().setFromObject(this.object!);        
+    }
+
+    onHit(){
+        console.log("player hit !")
+        const { scene, camera } = getGame()
+        spawnExplosion(this.object!.position, 40, scene, camera);
     }
 
 }

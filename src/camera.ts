@@ -1,17 +1,15 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
-import { shallowRef, type ShallowRef } from "vue";
-
-export type CameraTarget = THREE.Object3D
+import { ref, shallowRef, type Ref, type ShallowRef } from "vue";
 
 let camera: THREE.PerspectiveCamera;
 let cameraLight: THREE.PointLight;
 let controls: OrbitControls;
 
-const DEFAULT_CAMERA_OFFSET = new THREE.Vector3(0, 500, -1000)
-export let cameraTarget: ShallowRef<CameraTarget | null> = shallowRef(null);
+const CAMERA_POSITION_FROM_TARGET = new THREE.Vector3(0, 400, -800)
+const CAMERA_OFFSET_TO_TARGET = new THREE.Vector3(0, 80, 0)
 
-export function createCamera(renderer: THREE.Renderer){
+export function createCamera(renderer: THREE.Renderer): THREE.PerspectiveCamera {
     camera = new THREE.PerspectiveCamera(
         20, // Field of view
         16 / 9, // Aspect ratio
@@ -25,33 +23,82 @@ export function createCamera(renderer: THREE.Renderer){
     controls = new OrbitControls(camera, renderer.domElement);
     controls.minDistance = 1
     controls.maxDistance = 5000
-    camera.position.set(300, 100, 500);
-    camera.lookAt(new THREE.Vector3(0,0,0))
+
+    cameraPosition.value = {
+        position: new THREE.Vector3(300, 100, 500),
+        lookAt: new THREE.Vector3(0, 0, 0)
+    }
     
-    return { camera, cameraControls: controls }
+    return camera
 }
 
-let travelling: { 
-    from: THREE.Vector3, 
-    to: THREE.Vector3, 
-    offset: THREE.Vector3,
+interface CameraPosition {
+    position: THREE.Vector3
+    lookAt: THREE.Vector3
+}
+
+interface Travelling {
+    from: CameraPosition,
+    to: CameraPosition,
     duration: number, 
     timeElapsed: number
-} | null;
-
-export function moveCameraTo(target: CameraTarget, travellingTime=1000, offset = DEFAULT_CAMERA_OFFSET){   
-    disableCameraControls()
-    travelling = {
-        from: camera.position.clone(),
-        to: target.position.clone().add(offset),
-        duration: travellingTime,
-        offset,
-        timeElapsed: 0
-    }
+    onFinish?: () => void
 }
 
-export function followTarget(target: CameraTarget){
-    cameraTarget.value = target
+export let travelling: Travelling | null;
+export let cameraPosition: ShallowRef<CameraPosition> = shallowRef({
+    position: CAMERA_POSITION_FROM_TARGET.clone(),
+    lookAt: new THREE.Vector3(0,0,0)
+});
+
+export function moveCameraTo(target: CameraPosition | THREE.Object3D | THREE.Group, travellingTime=1000): Promise<void> {
+    let to: CameraPosition = (target instanceof THREE.Object3D || target instanceof THREE.Group) ?
+        { 
+            position: target.position.clone().add(CAMERA_POSITION_FROM_TARGET).add(CAMERA_OFFSET_TO_TARGET),
+            lookAt: target.position.clone().add(CAMERA_OFFSET_TO_TARGET)
+        } : target
+
+    disableCameraControls()
+    return new Promise(resolve => {
+        travelling = {
+            from: cameraPosition.value,
+            to: to,
+            duration: travellingTime,        
+            timeElapsed: 0,
+            onFinish: resolve
+        }
+    })
+}
+
+const lockedCameraPosition: Ref<THREE.Vector3 | null> = ref(null)
+const lockedCameraTarget: Ref<THREE.Vector3 | null> = ref(null)
+
+export function lockCameraPosition(position: THREE.Vector3){
+    lockedCameraPosition.value = position
+    disableCameraControls()
+}
+
+export function lockCameraTarget(target: THREE.Vector3){
+    lockedCameraTarget.value = target
+}
+
+export function lockCamera(newCameraPosition: CameraPosition = cameraPosition.value){
+    lockCameraPosition(newCameraPosition.position)
+    lockCameraTarget(newCameraPosition.lookAt)
+}
+
+export function unlockCameraPosition(){
+    lockedCameraPosition.value = null;
+    enableCameraControls()
+}
+
+export function unlockCameraTarget(){
+    lockedCameraTarget.value = null;
+}
+
+export function unlockCamera(){
+    unlockCameraPosition()
+    unlockCameraTarget()
 }
 
 export function enableCameraControls(){
@@ -62,19 +109,29 @@ export function disableCameraControls(){
     controls.enabled = false
 }
 
+let lookAtVector = new THREE.Vector3()
 export function updateCamera(timeElapsed: number) {
     if(travelling){
         travelling.timeElapsed += timeElapsed
         const travelPercentage = travelling.timeElapsed / travelling.duration
         if(travelPercentage > 1){
+            enableCameraControls()
+            cameraPosition.value = travelling.to
+            if(travelling.onFinish) travelling.onFinish()
             travelling = null
-            enableCameraControls()            
         } else {
-            camera.position.lerpVectors(travelling.from, travelling.to, travelPercentage);
-            camera.lookAt(travelling.to.clone().sub(travelling.offset))
-        }        
-    } else if(cameraTarget.value){
-        controls.target.copy(cameraTarget.value.position)
-        controls.update()
+            camera.position.lerpVectors(travelling.from.position, travelling.to.position, travelPercentage);
+            camera.lookAt(lookAtVector.lerpVectors(travelling.from.lookAt, travelling.to.lookAt, travelPercentage))
+        }
+    } else if(lockedCameraPosition.value != null){
+        camera.position.copy(lockedCameraPosition.value)
+        if(lockedCameraTarget.value != null){
+            camera.lookAt(lockedCameraTarget.value)
+        }
+    } else {
+        if(lockedCameraTarget.value != null){
+            controls.target.copy(lockedCameraTarget.value)
+            controls.update()
+        }
     }
 }
