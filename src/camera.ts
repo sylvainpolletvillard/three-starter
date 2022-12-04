@@ -2,7 +2,6 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
 import { ref, shallowRef, type Ref, type ShallowRef } from "vue";
 import { getGame } from "./game";
-import { gameState } from "./gamestate";
 import { audioListener } from "./loader";
 
 let camera: THREE.PerspectiveCamera;

@@ -1,10 +1,10 @@
 import * as THREE from "three";
+import { playMusic } from "./audio";
 import { createCamera, lockCamera, moveCameraTo, updateCamera } from "./camera";
 import { checkCollisions } from "./collisions";
 import { handleCursor, initCursor } from "./cursor";
 import { spawnEnemy, updateEnemies } from "./enemies";
 import { gameState, updateGameState, type GameState } from "./gamestate";
-import { SOUNDS } from "./loader";
 import { updateParticles } from "./particles";
 import { Player } from "./player";
 import { initPostprocessing, renderWithPostProcessing } from "./postprocessing";
@@ -50,10 +50,7 @@ export class Game {
             this.spawnNextEnemy()
         })
 
-        const music = SOUNDS.get("music")!
-        music.setLoop(true)
-        music.setVolume(0.5)
-        music.play()
+        playMusic()
 
         //Main Loop
         let t = performance.now();
