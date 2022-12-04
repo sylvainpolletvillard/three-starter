@@ -3,7 +3,7 @@ import { createCamera, lockCamera, moveCameraTo, updateCamera } from "./camera";
 import { checkCollisions } from "./collisions";
 import { handleCursor, initCursor } from "./cursor";
 import { spawnEnemy, updateEnemies } from "./enemies";
-import { gameState, type GameState } from "./gamestate";
+import { gameState, updateGameState, type GameState } from "./gamestate";
 import { SOUNDS } from "./loader";
 import { updateParticles } from "./particles";
 import { Player } from "./player";
@@ -45,7 +45,10 @@ export class Game {
         initPostprocessing(this.scene, this.camera, renderer)
         initCursor();
 
-        moveCameraTo(this.player.object!, 2500).then(() => lockCamera())
+        moveCameraTo(this.player.object!, 2500).then(() => {
+            lockCamera()
+            this.spawnNextEnemy()
+        })
 
         const music = SOUNDS.get("music")!
         music.setLoop(true)
@@ -63,22 +66,25 @@ export class Game {
             handleCursor(this.camera)
             t=t2
         });
-
-        setInterval(() => {
-            spawnEnemy({
-                position: new THREE.Vector3(randomBetween(-230, +230), 0, 1000),
-                velocity: new THREE.Vector3(0,0,-250),
-                camera: this.camera,
-                scene: this.scene
-            })
-        }, 3000)
     }
 
     update(timeElapsed: number, scene: THREE.Scene){
         this.player.update(timeElapsed, scene);
+        updateGameState(timeElapsed);
         updateProjectiles(timeElapsed, scene);
         updateEnemies(timeElapsed, scene);
         updateParticles(timeElapsed);
         checkCollisions();
+    }
+
+    spawnNextEnemy(){
+        spawnEnemy({
+            position: new THREE.Vector3(randomBetween(-230, +230), 0, 1000),
+            velocity: new THREE.Vector3(0,0,-250),
+            camera: this.camera,
+            scene: this.scene
+        })
+        const delay = Math.max(100, 3000 - (this.state.time/100))
+        setTimeout(() => this.spawnNextEnemy(), delay)
     }
 }
