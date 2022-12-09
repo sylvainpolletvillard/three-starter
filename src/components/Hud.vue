@@ -1,5 +1,7 @@
 <template>
     <Loading v-if="isLoading"></Loading>
+    <Menu v-else-if="gameState.scene === 'menu'" />
+    <Options v-else-if="gameState.scene === 'options'" />
     <template v-else>
         <div style="display: flex; justify-content: space-between;">
             <div class="score">
@@ -20,6 +22,8 @@ import { store } from '../utils/store';
 import { isLoading } from '../loader';
 
 import Loading from './Loading.vue';
+import Menu from "./Menu.vue";
+import Options from "./Options.vue";
 
 const record = store.record
 const formatTime = (ms: number) => {

@@ -5,6 +5,7 @@ import { initPostprocessing } from "./postprocessing";
 import { Game, getGame } from "./game";
 import Hud from "./components/Hud.vue";
 import { loadAssets } from "./loader";
+import { gameState } from "./gamestate";
 
 const renderer = new THREE.WebGLRenderer({
   antialias: true,
@@ -24,13 +25,13 @@ function resize() {
 
 window.addEventListener("resize", resize);
 
-
 createApp(Hud).mount('#hud')
-loadAssets().then(startGame)
+loadAssets()
 
-function startGame(){
+export function startGame(){
   const game = new Game(renderer);  
   resize();
+  gameState.scene = "game";
   initPostprocessing(game.scene, game.camera, renderer)
 
   // Expose globals
