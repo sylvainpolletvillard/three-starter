@@ -8,7 +8,7 @@ export function playMusic() {
         return;
     }
     music.setLoop(true)
-    music.setVolume(store.MUSIC_VOLUME)
+    music.setVolume(store.MUSIC_VOLUME / 100)
     music.play()
 }
 
@@ -16,7 +16,7 @@ export function playSound(name: keyof typeof SOUNDS_TO_LOAD){
     const sound = SOUNDS.get(name)
     if(!sound) console.error(`Sound not found: ${name}`)
     else {
-        sound.setVolume(store.SFX_VOLUME)
+        sound.setVolume(store.SFX_VOLUME / 100)
         sound.play()
     }
 }

@@ -4,8 +4,8 @@ interface Store {
 
 export const store: Store = new Proxy({
     // defaults
-    MUSIC_VOLUME: 0.2,
-    SFX_VOLUME: 0.2
+    MUSIC_VOLUME: 20,
+    SFX_VOLUME: 20
 }, {
     get(o, prop){
         if(typeof prop === "string" && localStorage.getItem(prop) != null){
